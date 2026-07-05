@@ -24,6 +24,23 @@ def validate_dataset(path):
     return head + "\n" + "\n".join(msgs)
 
 
+def build_cmd_from_ui(cfg, dataset, output, quality, vram, resolution,
+                      isosurface, extra_args):
+    """Build the run command from raw UI values.
+
+    Gradio delivers None for untouched/cleared fields, so every optional
+    input is normalized here (regression: AttributeError on
+    extra_args.strip() when the advanced accordion was never opened).
+    """
+    quality_key = (quality or "fast").split()[0]
+    extra = extra_args.split() if extra_args and extra_args.strip() else []
+    return gw.build_run_command(
+        cfg, dataset, output, quality_key, vram or "16",
+        resolution=resolution or None,
+        isosurface=isosurface if (isosurface is not None and isosurface != 0) else None,
+        extra=extra)
+
+
 def _stage_of(line, current):
     if "Step 1/3" in line:
         return "1/3 学習 / training"
@@ -62,12 +79,8 @@ def run_pipeline(dataset, output, quality, vram, resolution, isosurface, extra_a
         yield state(str(e))
         return
 
-    quality_key = quality.split()[0]  # labels start with the preset key
-    extra = extra_args.split() if extra_args.strip() else []
-    cmd = gw.build_run_command(cfg, dataset, output, quality_key, vram,
-                               resolution=resolution or None,
-                               isosurface=isosurface if isosurface != 0 else None,
-                               extra=extra)
+    cmd = build_cmd_from_ui(cfg, dataset, output, quality, vram,
+                            resolution, isosurface, extra_args)
     yield state("[INFO] " + subprocess.list2cmdline(cmd))
 
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
