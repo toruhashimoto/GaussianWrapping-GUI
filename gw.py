@@ -5,8 +5,9 @@ GaussianWrapping's own `train_and_extract_gw_{ours,radegs}.py`. The GUI uses
 exactly this module to build and run its commands, so GUI and CLI cannot
 diverge.
 
-  gw.py run -s <COLMAP_DATASET> -m <OUTPUT_DIR> [--rasterizer ours|radegs]
-            [--vram 8|12|16|24|48|96] [any upstream flag ...]
+  gw.py run -s <COLMAP_DATASET> -m <OUTPUT_DIR> [--quality fast|best|high]
+            [--rasterizer ours|radegs] [--vram 8|12|16|24|48|96]
+            [any upstream flag ...]
   gw.py doctor          # environment smoke test
   gw.py check -s <DIR>  # validate a COLMAP dataset folder
 """
@@ -25,6 +26,19 @@ CONFIG = os.path.join(HERE, "config.json")
 # on large scenes.
 VRAM_PRESETS = {"8": 1_200_000, "12": 1_800_000, "16": 2_500_000,
                 "24": 6_000_000, "48": 12_000_000, "96": 24_000_000}
+
+# Quality presets, built only from upstream-documented knobs:
+#   fast = ours rasterizer (faster, better metrics per upstream README)
+#   best = radegs rasterizer (smoother-looking meshes)
+#   high = radegs + full input resolution (-r 1 disables the automatic
+#          1600px downscale) + --isosurface_value 0.2 (upstream's
+#          recommendation when fine details are missing). Slowest, most VRAM.
+QUALITY_PRESETS = {
+    "fast": {"rasterizer": "ours", "flags": []},
+    "best": {"rasterizer": "radegs", "flags": []},
+    "high": {"rasterizer": "radegs",
+             "flags": ["-r", "1", "--isosurface_value", "0.2"]},
+}
 
 
 def load_config():
@@ -93,14 +107,18 @@ def check_dataset(path):
     return ok, msgs
 
 
-def build_run_command(cfg, source, output, rasterizer="ours", vram="16",
-                      resolution=None, isosurface=None, extra=()):
+def build_run_command(cfg, source, output, quality="fast", vram="16",
+                      resolution=None, isosurface=None, extra=(),
+                      rasterizer=None):
     """Build the exact upstream command. Extra flags go through verbatim, last
-    occurrence wins in upstream argparse, so user flags override presets."""
+    occurrence wins in upstream argparse, so user flags override presets
+    (order: quality-preset flags -> advanced fields -> extra)."""
+    preset = QUALITY_PRESETS[quality]
     script = os.path.join(cfg["gw_repo"], "gaussian_wrapping", "scripts",
-                          f"train_and_extract_gw_{rasterizer}.py")
+                          f"train_and_extract_gw_{rasterizer or preset['rasterizer']}.py")
     cmd = [cfg["env_python"], script, "-s", source, "-m", output,
            "--N_max_gaussians", str(VRAM_PRESETS[str(vram)])]
+    cmd += preset["flags"]
     if resolution and int(resolution) > 0:
         cmd += ["-r", str(int(resolution))]
     if isosurface is not None and str(isosurface) != "":
@@ -113,7 +131,9 @@ def cmd_run(argv):
     ap = argparse.ArgumentParser(prog="gw.py run", add_help=False)
     ap.add_argument("-s", "--source_path", required=True)
     ap.add_argument("-m", "--model_path", required=True)
-    ap.add_argument("--rasterizer", choices=["ours", "radegs"], default="ours")
+    ap.add_argument("--quality", choices=list(QUALITY_PRESETS), default="fast")
+    ap.add_argument("--rasterizer", choices=["ours", "radegs"], default=None,
+                    help="explicit rasterizer (overrides the quality preset's)")
     ap.add_argument("--vram", choices=list(VRAM_PRESETS), default="16")
     args, extra = ap.parse_known_args(argv)
 
@@ -125,7 +145,8 @@ def cmd_run(argv):
 
     cfg = load_config()
     cmd = build_run_command(cfg, args.source_path, args.model_path,
-                            args.rasterizer, args.vram, extra=extra)
+                            args.quality, args.vram, extra=extra,
+                            rasterizer=args.rasterizer)
     print("[INFO] " + subprocess.list2cmdline(cmd))
     r = subprocess.run(cmd, env=runtime_env(cfg), cwd=cfg["gw_repo"])
     raise SystemExit(r.returncode)

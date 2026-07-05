@@ -45,7 +45,7 @@ torch 2.9.1+cu128 → [Windows fork](https://github.com/toruhashimoto/GaussianWr
 
 `launch_gui.bat` をダブルクリック。**COLMAP データセットフォルダ**（`images/` +
 `sparse/`。選ぶと自動検証され、問題があれば理由が表示されます）と**出力フォルダ**を
-指定し、品質プリセット（`fast/ours` か `best/radegs`）と **GPU VRAM**（ガウシアン数
+指定し、品質プリセット（`fast` / `best` / `high` = radegs+フル解像度+isosurface 0.2）と **GPU VRAM**（ガウシアン数
 上限を自動設定）を選んで**実行**。3工程（学習 → メッシュ抽出 → テクスチャ精細化）の
 ログが流れ、完了するとメッシュのパスとプレビュー画像が表示されます。
 **環境診断**タブからいつでもスモークテストを再実行できます。

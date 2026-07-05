@@ -1,7 +1,8 @@
 @echo off
 REM ASCII-only on purpose: cmd.exe parses .bat in the OEM codepage.
 REM GaussianWrapping CLI (faithful pass-through to upstream scripts).
-REM Usage: gw_run.bat run -s DATASET -m OUTPUT [--rasterizer ours^|radegs]
+REM Usage: gw_run.bat run -s DATASET -m OUTPUT [--quality fast^|best^|high]
+REM        [--rasterizer ours^|radegs]
 REM        [--vram 8^|12^|16^|24^|48^|96] [any upstream flag...]
 REM        gw_run.bat doctor
 REM        gw_run.bat check -s DATASET

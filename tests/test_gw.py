@@ -38,7 +38,7 @@ def test_check_dataset_missing_images(tmp_path):
 
 def test_build_run_command_passthrough_and_presets(tmp_path):
     cfg = {"env_python": r"C:\env\python.exe", "gw_repo": r"C:\gw"}
-    cmd = gw.build_run_command(cfg, "DS", "OUT", "radegs", "8",
+    cmd = gw.build_run_command(cfg, "DS", "OUT", "best", "8",
                                resolution=2, isosurface=0.2,
                                extra=["--exposure_compensation",
                                       "--N_max_gaussians", "999"])
@@ -50,6 +50,28 @@ def test_build_run_command_passthrough_and_presets(tmp_path):
     assert cmd[-1] == "999"
     assert cmd[cmd.index("-r") + 1] == "2"
     assert cmd[cmd.index("--isosurface_value") + 1] == "0.2"
+
+
+def test_quality_presets():
+    cfg = {"env_python": "py", "gw_repo": "gw"}
+    fast = gw.build_run_command(cfg, "DS", "OUT", "fast", "16")
+    assert fast[1].endswith("train_and_extract_gw_ours.py")
+    assert "-r" not in fast and "--isosurface_value" not in fast
+
+    high = gw.build_run_command(cfg, "DS", "OUT", "high", "16")
+    assert high[1].endswith("train_and_extract_gw_radegs.py")
+    assert high[high.index("-r") + 1] == "1"                     # full resolution
+    assert high[high.index("--isosurface_value") + 1] == "0.2"   # fine details
+
+    # advanced fields override the high preset (come later -> argparse last-wins)
+    high2 = gw.build_run_command(cfg, "DS", "OUT", "high", "16",
+                                 resolution=2, isosurface=0.0)
+    r_idx = [i for i, v in enumerate(high2) if v == "-r"]
+    iso_idx = [i for i, v in enumerate(high2) if v == "--isosurface_value"]
+    assert high2[r_idx[-1] + 1] == "2"
+    assert high2[iso_idx[-1] + 1] == "0.0"
+
+    assert set(gw.QUALITY_PRESETS) == {"fast", "best", "high"}
 
 
 def test_vram_presets_cover_all_choices():

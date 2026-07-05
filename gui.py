@@ -62,9 +62,9 @@ def run_pipeline(dataset, output, quality, vram, resolution, isosurface, extra_a
         yield state(str(e))
         return
 
-    rasterizer = "radegs" if "radegs" in quality else "ours"
+    quality_key = quality.split()[0]  # labels start with the preset key
     extra = extra_args.split() if extra_args.strip() else []
-    cmd = gw.build_run_command(cfg, dataset, output, rasterizer, vram,
+    cmd = gw.build_run_command(cfg, dataset, output, quality_key, vram,
                                resolution=resolution or None,
                                isosurface=isosurface if isosurface != 0 else None,
                                extra=extra)
@@ -140,7 +140,9 @@ with gr.Blocks(title="GaussianWrapping GUI") as demo:
                                     placeholder=r"C:\data\my_scan_output")
                 quality = gr.Radio(
                     ["fast (ours) - 速い・指標が良い / faster, better metrics",
-                     "best (radegs) - 見た目が滑らか / smoother-looking meshes"],
+                     "best (radegs) - 見た目が滑らか / smoother-looking meshes",
+                     "high (radegs + フル解像度 + isosurface 0.2) - 最高品質・最も遅い・"
+                     "VRAM消費大 / maximum quality, slowest"],
                     value="fast (ours) - 速い・指標が良い / faster, better metrics",
                     label="品質プリセット / quality preset")
                 vram = gr.Radio(["8", "12", "16", "24", "48", "96"], value="16",

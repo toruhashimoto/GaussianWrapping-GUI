@@ -48,7 +48,7 @@ the CGAL Delaunay extension, and finishes with a smoke test. **Re-running
 Double-click `launch_gui.bat`. Pick your **COLMAP dataset folder**
 (`images/` + `sparse/`; the GUI validates it and tells you what's wrong if
 anything), pick an **output folder**, choose a quality preset
-(`fast/ours` or `best/radegs`) and your **GPU VRAM** (sets the Gaussian cap),
+(`fast`, `best`, or `high` = radegs + full resolution + isosurface 0.2) and your **GPU VRAM** (sets the Gaussian cap),
 press **Run**. The three stages (training → mesh extraction → texture
 refinement) stream their logs into the window; when done you get the mesh
 paths and rendered previews. A **Diagnostics** tab re-runs the environment
