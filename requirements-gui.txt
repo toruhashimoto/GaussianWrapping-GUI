@@ -1,0 +1,5 @@
+# GUI-side requirements (installed into the created env by install.py;
+# GaussianWrapping's own requirements.txt is installed separately)
+gradio>=4.0
+imageio
+fast-simplification

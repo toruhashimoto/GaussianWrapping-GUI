@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+GaussianWrapping/
+config.json
+launch_env.bat
+output/
+*.ply
