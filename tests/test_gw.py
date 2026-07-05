@@ -53,5 +53,7 @@ def test_build_run_command_passthrough_and_presets(tmp_path):
 
 
 def test_vram_presets_cover_all_choices():
-    assert set(gw.VRAM_PRESETS) == {"8", "12", "16", "24"}
+    assert set(gw.VRAM_PRESETS) == {"8", "12", "16", "24", "48", "96"}
     assert gw.VRAM_PRESETS["24"] == 6_000_000  # upstream default
+    caps = [gw.VRAM_PRESETS[k] for k in ["8", "12", "16", "24", "48", "96"]]
+    assert caps == sorted(caps)  # monotonically increasing with VRAM

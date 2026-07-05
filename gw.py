@@ -6,7 +6,7 @@ exactly this module to build and run its commands, so GUI and CLI cannot
 diverge.
 
   gw.py run -s <COLMAP_DATASET> -m <OUTPUT_DIR> [--rasterizer ours|radegs]
-            [--vram 8|12|16|24] [any upstream flag ...]
+            [--vram 8|12|16|24|48|96] [any upstream flag ...]
   gw.py doctor          # environment smoke test
   gw.py check -s <DIR>  # validate a COLMAP dataset folder
 """
@@ -19,8 +19,12 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 CONFIG = os.path.join(HERE, "config.json")
 
-# --N_max_gaussians presets: 24 GB matches the upstream default (6M)
-VRAM_PRESETS = {"8": 1_200_000, "12": 1_800_000, "16": 2_500_000, "24": 6_000_000}
+# --N_max_gaussians presets: 24 GB matches the upstream default (6M);
+# 48/96 GB (workstation cards, e.g. RTX PRO 6000) scale that cap by VRAM ratio.
+# These are OOM-prevention caps, not targets - densification only reaches them
+# on large scenes.
+VRAM_PRESETS = {"8": 1_200_000, "12": 1_800_000, "16": 2_500_000,
+                "24": 6_000_000, "48": 12_000_000, "96": 24_000_000}
 
 
 def load_config():

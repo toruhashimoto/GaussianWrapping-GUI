@@ -143,7 +143,7 @@ with gr.Blocks(title="GaussianWrapping GUI") as demo:
                      "best (radegs) - 見た目が滑らか / smoother-looking meshes"],
                     value="fast (ours) - 速い・指標が良い / faster, better metrics",
                     label="品質プリセット / quality preset")
-                vram = gr.Radio(["8", "12", "16", "24"], value="16",
+                vram = gr.Radio(["8", "12", "16", "24", "48", "96"], value="16",
                                 label="GPU VRAM (GB) - ガウシアン数上限を自動設定")
                 with gr.Accordion("詳細設定 / advanced", open=False):
                     resolution = gr.Number(value=0, label="-r 解像度縮小 (0 = 自動)")
