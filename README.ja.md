@@ -24,9 +24,31 @@
 | NVIDIA ドライバ | https://www.nvidia.com/drivers | RTX 30/40/50 系 (sm_80+) |
 | CUDA Toolkit **12.8** | https://developer.nvidia.com/cuda-12-8-0-download-archive | torch cu128 と一致する 12.8 限定（他バージョンと共存可） |
 | VS2022 Build Tools | https://visualstudio.microsoft.com/visual-cpp-build-tools/ | 「C++ によるデスクトップ開発」にチェック |
-| Miniconda | https://docs.conda.io/en/latest/miniconda.html | Python と CGAL ライブラリの供給元 |
+| Python **3.11** | https://www.python.org/downloads/release/python-311/ | conda 不要インストール（推奨）に必要 |
+| Miniconda | https://docs.conda.io/en/latest/miniconda.html | conda 版を選ぶ場合のみ。CGAL を conda-forge から供給 |
 
-## インストール（全自動、30〜60分）
+## インストール（conda 不要・制限 PC 向け・推奨）
+
+conda を一切使わず、Python の venv と pip だけで構築します。CGAL の
+`tetra_triangulation` 拡張はビルドせず、メッシュ抽出は自動で
+`--delaunay_method scipy` にフォールバックします（Delaunay 工程は遅くなりますが、
+Miniconda / conda-forge が不要になります）。**CUDA 拡張のビルド自体は conda 版と
+同じく行う**ため、CUDA 12.8 と VS2022 Build Tools は引き続き必要です。
+
+```bat
+git clone https://github.com/toruhashimoto/GaussianWrapping-GUI
+cd GaussianWrapping-GUI
+install_venv.bat
+```
+
+インストール後のランチャーは conda 版と共通です:
+
+```bat
+launch_gui.bat
+gw_run.bat doctor
+```
+
+## インストール（conda + CGAL・Delaunay 高速、30〜60分）
 
 ```bat
 git clone https://github.com/toruhashimoto/GaussianWrapping-GUI
@@ -39,7 +61,8 @@ torch 2.9.1+cu128 → [Windows fork](https://github.com/toruhashimoto/GaussianWr
 （`windows` ブランチ）の clone → 全 CUDA 拡張のビルド（`NVCC_APPEND_FLAGS=-DUSE_CUDA`
 等の必須環境変数込み。理由は fork の `WINDOWS.md` 参照）→ CGAL Delaunay 拡張の
 ビルド → スモークテスト、まで自動で行います。**失敗後に再実行すると完了済みの
-工程はスキップされます。**
+工程はスキップされます。** Miniconda が使える環境で、より高速な
+CGAL/tetra_triangulation Delaunay を使いたい場合はこちらを選びます。
 
 ## 使い方 — GUI
 
@@ -91,7 +114,8 @@ RealityScan の COLMAP 出力サンプル（写真74枚）を
   `NVCC_APPEND_FLAGS=-DUSE_CUDA` なしでビルドしています。手動ビルドせず
   `install.bat` を使ってください
 - **tetra_triangulation のビルド失敗** — 追加引数に `--delaunay_method scipy` を
-  指定すればパイプラインは動きます（Delaunay 工程が遅くなるだけ）
+  指定すればパイプラインは動きます（Delaunay 工程が遅くなるだけ）。または
+  `install_venv.bat`（conda 不要・scipy フォールバック版）を使ってください
 - **初回実行の起動が遅い** — nvdiffrast が初回のみ JIT コンパイルします（以降はキャッシュ）
 - **VRAM 不足** — VRAM プリセットを下げる、または `-r 2` で入力解像度を半分に
 

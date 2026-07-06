@@ -52,6 +52,34 @@ def test_build_run_command_passthrough_and_presets(tmp_path):
     assert cmd[cmd.index("--isosurface_value") + 1] == "0.2"
 
 
+def test_build_run_command_adds_configured_delaunay_method():
+    cfg = {"env_python": r"C:\env\python.exe", "gw_repo": r"C:\gw",
+           "delaunay_method": "scipy"}
+    cmd = gw.build_run_command(cfg, "DS", "OUT", "fast", "16",
+                               extra=["--no_postprocess"])
+    assert cmd[cmd.index("--delaunay_method") + 1] == "scipy"
+    assert cmd.index("--delaunay_method") < cmd.index("--no_postprocess")
+
+
+def test_build_run_command_user_delaunay_override_not_duplicated():
+    cfg = {"env_python": r"C:\env\python.exe", "gw_repo": r"C:\gw",
+           "delaunay_method": "scipy"}
+    cmd = gw.build_run_command(cfg, "DS", "OUT", "fast", "16",
+                               extra=["--delaunay_method", "tetranerf"])
+    assert cmd.count("--delaunay_method") == 1
+    assert cmd[cmd.index("--delaunay_method") + 1] == "tetranerf"
+
+
+def test_smoke_test_command_allows_missing_tetranerf_for_scipy_profile():
+    cfg = {"env_python": "py", "delaunay_method": "scipy"}
+    assert gw.smoke_test_command(cfg)[-1] == "--allow-missing-tetranerf"
+
+
+def test_env_root_from_config_supports_venv_scripts_python():
+    cfg = {"env_python": r"C:\repo\.venv\Scripts\python.exe"}
+    assert gw.env_root_from_config(cfg) == r"C:\repo\.venv"
+
+
 def test_quality_presets():
     cfg = {"env_python": "py", "gw_repo": "gw"}
     fast = gw.build_run_command(cfg, "DS", "OUT", "fast", "16")

@@ -1,6 +1,12 @@
 """Smoke test: import + minimal GPU op for every compiled component."""
+import argparse
 import sys
 import traceback
+
+ARGS = argparse.ArgumentParser()
+ARGS.add_argument("--allow-missing-tetranerf", action="store_true",
+                  help="Pass when using the conda-free scipy fallback profile.")
+ARGS = ARGS.parse_args()
 
 RESULTS = []
 
@@ -81,7 +87,14 @@ def t_tetranerf():
     return f"triangulate 500 pts -> {tets.shape[0]} tets"
 
 
-check("tetranerf triangulate", t_tetranerf)
+def t_tetranerf_optional():
+    try:
+        return t_tetranerf()
+    except ImportError as e:
+        return f"not installed ({type(e).__name__}: {e}); scipy fallback enabled"
+
+
+check("tetranerf triangulate", t_tetranerf_optional if ARGS.allow_missing_tetranerf else t_tetranerf)
 
 
 def t_scipy_delaunay():

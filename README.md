@@ -25,9 +25,32 @@ to fuse the result with your RealityScan High Detail mesh into one model.
 | NVIDIA driver | https://www.nvidia.com/drivers | RTX 30/40/50 series (sm_80+) |
 | CUDA Toolkit **12.8** | https://developer.nvidia.com/cuda-12-8-0-download-archive | exactly 12.8 (matches the torch cu128 wheels); it can coexist with other versions |
 | VS2022 Build Tools | https://visualstudio.microsoft.com/visual-cpp-build-tools/ | check "Desktop development with C++" |
-| Miniconda | https://docs.conda.io/en/latest/miniconda.html | provides Python and the CGAL library |
+| Python **3.11** | https://www.python.org/downloads/release/python-311/ | required for the conda-free installer (recommended) |
+| Miniconda | https://docs.conda.io/en/latest/miniconda.html | conda install path only; provides CGAL via conda-forge |
 
-## Install (automated, 30–60 min)
+## Install (conda-free, recommended for restricted PCs)
+
+This path uses a local Python venv and pip only. It skips the CGAL
+`tetra_triangulation` extension and automatically runs mesh extraction with
+`--delaunay_method scipy`. The Delaunay step is slower, but setup avoids
+Miniconda and conda-forge entirely. **The CUDA extension builds still happen**
+exactly as in the conda path, so CUDA 12.8 and VS2022 Build Tools are still
+required.
+
+```bat
+git clone https://github.com/toruhashimoto/GaussianWrapping-GUI
+cd GaussianWrapping-GUI
+install_venv.bat
+```
+
+After a successful install, use the same launchers as usual:
+
+```bat
+launch_gui.bat
+gw_run.bat doctor
+```
+
+## Install (full conda + CGAL, faster Delaunay)
 
 ```bat
 git clone https://github.com/toruhashimoto/GaussianWrapping-GUI
@@ -42,6 +65,9 @@ creates a conda env, installs torch 2.9.1+cu128, clones the
 (`NVCC_APPEND_FLAGS=-DUSE_CUDA` — see the fork's `WINDOWS.md` for why), builds
 the CGAL Delaunay extension, and finishes with a smoke test. **Re-running
 `install.bat` after a failure skips completed steps.**
+
+Use this full path when Miniconda is acceptable and you want the faster
+CGAL/tetra_triangulation Delaunay backend.
 
 ## Use — GUI
 
@@ -95,7 +121,8 @@ as `Sample_COLMAP.zip` — unzip and point the GUI at it for a first run.
   without `NVCC_APPEND_FLAGS=-DUSE_CUDA`; use `install.bat` (it sets it), don't
   build by hand.
 - **tetra_triangulation build fails** — the pipeline still works: add
-  `--delaunay_method scipy` to the extra args (slower Delaunay step).
+  `--delaunay_method scipy` to the extra args (slower Delaunay step), or run
+  `install_venv.bat` for the conda-free scipy fallback profile.
 - **First run is slow to start** — nvdiffrast JIT-compiles its plugin once;
   later runs load it from cache.
 - **Out of memory** — lower the VRAM preset, or add `-r 2` to halve the input

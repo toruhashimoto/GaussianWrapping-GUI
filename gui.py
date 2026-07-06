@@ -127,7 +127,7 @@ def run_doctor():
         cfg = gw.load_config()
     except SystemExit as e:
         return str(e)
-    r = subprocess.run([cfg["env_python"], os.path.join(HERE, "smoke_test.py")],
+    r = subprocess.run(gw.smoke_test_command(cfg),
                        capture_output=True, text=True, encoding="utf-8",
                        errors="replace", env=gw.runtime_env(cfg), cwd=HERE)
     return (r.stdout or "") + ("\n" + r.stderr if r.returncode != 0 else "")

@@ -43,25 +43,44 @@ QUALITY_PRESETS = {
 
 def load_config():
     if not os.path.isfile(CONFIG):
-        raise SystemExit("[ERROR] config.json not found - run install.bat first")
+        raise SystemExit("[ERROR] config.json not found - run install_venv.bat or install.bat first")
     with open(CONFIG, encoding="utf-8") as f:
         return json.load(f)
 
 
+def env_root_from_config(cfg):
+    if cfg.get("env_root"):
+        return cfg["env_root"]
+    py_dir = os.path.dirname(os.path.abspath(cfg["env_python"]))
+    if os.path.basename(py_dir).lower() == "scripts":
+        return os.path.dirname(py_dir)
+    return py_dir
+
+
 def runtime_env(cfg):
     env = os.environ.copy()
-    prefix = os.path.dirname(cfg["env_python"])
+    prefix = env_root_from_config(cfg)
+    path_parts = [
+        os.path.join(cfg["cuda_home"], "bin"),
+        os.path.join(prefix, "Scripts"),
+        os.path.join(prefix, "Library", "bin"),
+    ]
     env.update({
         "CUDA_HOME": cfg["cuda_home"], "CUDA_PATH": cfg["cuda_home"],
         "TORCH_CUDA_ARCH_LIST": cfg["arch"],
         "DISTUTILS_USE_SDK": "1", "VSLANG": "1033",
         "NVCC_APPEND_FLAGS": "-DUSE_CUDA",
         "PYTHONUTF8": "1", "PYTHONUNBUFFERED": "1",
-        "PATH": os.path.join(cfg["cuda_home"], "bin") + ";" +
-                os.path.join(prefix, "Scripts") + ";" +
-                os.path.join(prefix, "Library", "bin") + ";" + env["PATH"],
+        "PATH": ";".join(path_parts + [env["PATH"]]),
     })
     return env
+
+
+def smoke_test_command(cfg):
+    cmd = [cfg["env_python"], os.path.join(HERE, "smoke_test.py")]
+    if cfg.get("delaunay_method") == "scipy":
+        cmd.append("--allow-missing-tetranerf")
+    return cmd
 
 
 def check_dataset(path):
@@ -112,7 +131,8 @@ def build_run_command(cfg, source, output, quality="fast", vram="16",
                       rasterizer=None):
     """Build the exact upstream command. Extra flags go through verbatim, last
     occurrence wins in upstream argparse, so user flags override presets
-    (order: quality-preset flags -> advanced fields -> extra)."""
+    (order: quality-preset flags -> advanced fields -> configured defaults
+    -> extra)."""
     preset = QUALITY_PRESETS[quality]
     script = os.path.join(cfg["gw_repo"], "gaussian_wrapping", "scripts",
                           f"train_and_extract_gw_{rasterizer or preset['rasterizer']}.py")
@@ -123,7 +143,10 @@ def build_run_command(cfg, source, output, quality="fast", vram="16",
         cmd += ["-r", str(int(resolution))]
     if isosurface is not None and str(isosurface) != "":
         cmd += ["--isosurface_value", str(isosurface)]
-    cmd += list(extra)
+    extra = list(extra)
+    if cfg.get("delaunay_method") and "--delaunay_method" not in extra:
+        cmd += ["--delaunay_method", cfg["delaunay_method"]]
+    cmd += extra
     return cmd
 
 
@@ -154,8 +177,7 @@ def cmd_run(argv):
 
 def cmd_doctor():
     cfg = load_config()
-    r = subprocess.run([cfg["env_python"], os.path.join(HERE, "smoke_test.py")],
-                       env=runtime_env(cfg), cwd=HERE)
+    r = subprocess.run(smoke_test_command(cfg), env=runtime_env(cfg), cwd=HERE)
     raise SystemExit(r.returncode)
 
 
