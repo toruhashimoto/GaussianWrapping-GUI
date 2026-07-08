@@ -74,7 +74,10 @@ CGAL/tetra_triangulation Delaunay backend.
 Double-click `launch_gui.bat`. Pick your **COLMAP dataset folder**
 (`images/` + `sparse/`; the GUI validates it and tells you what's wrong if
 anything), pick an **output folder**, choose a quality preset
-(`fast`, `best`, or `high` = radegs + full resolution + isosurface 0.2) and your **GPU VRAM** (sets the Gaussian cap),
+(`fast`, `best`, or `high` = radegs + full resolution + isosurface 0.2), your
+**GPU VRAM** (sets the Gaussian cap), an **input resolution** (auto / full /
+½ / ¼), and whether to **remove background & floaters** (on by default — keeps
+only the largest connected part of the mesh; disconnected pieces only),
 press **Run**. The three stages (training → mesh extraction → texture
 refinement) stream their logs into the window; when done you get the mesh
 paths and rendered previews. A **Diagnostics** tab re-runs the environment
@@ -125,8 +128,8 @@ as `Sample_COLMAP.zip` — unzip and point the GUI at it for a first run.
   `install_venv.bat` for the conda-free scipy fallback profile.
 - **First run is slow to start** — nvdiffrast JIT-compiles its plugin once;
   later runs load it from cache.
-- **Out of memory** — lower the VRAM preset, or add `-r 2` to halve the input
-  resolution.
+- **Out of memory** — lower the VRAM preset, or set **input resolution** to
+  `1/2` (equivalent to `-r 2`) to halve the input resolution.
 
 ## License
 
