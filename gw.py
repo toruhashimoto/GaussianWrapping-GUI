@@ -128,7 +128,7 @@ def check_dataset(path):
 
 def build_run_command(cfg, source, output, quality="fast", vram="16",
                       resolution=None, isosurface=None, extra=(),
-                      rasterizer=None):
+                      rasterizer=None, remove_floaters=True):
     """Build the exact upstream command. Extra flags go through verbatim, last
     occurrence wins in upstream argparse, so user flags override presets
     (order: quality-preset flags -> advanced fields -> configured defaults
@@ -144,6 +144,11 @@ def build_run_command(cfg, source, output, quality="fast", vram="16",
     if isosurface is not None and str(isosurface) != "":
         cmd += ["--isosurface_value", str(isosurface)]
     extra = list(extra)
+    # remove_floaters is the default upstream behavior (entry script forces
+    # --postprocess = keep the largest connected component); disabling it
+    # means passing --no_postprocess through to the entry script.
+    if not remove_floaters and "--no_postprocess" not in extra:
+        cmd += ["--no_postprocess"]
     if cfg.get("delaunay_method") and "--delaunay_method" not in extra:
         cmd += ["--delaunay_method", cfg["delaunay_method"]]
     cmd += extra

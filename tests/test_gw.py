@@ -107,3 +107,18 @@ def test_vram_presets_cover_all_choices():
     assert gw.VRAM_PRESETS["24"] == 6_000_000  # upstream default
     caps = [gw.VRAM_PRESETS[k] for k in ["8", "12", "16", "24", "48", "96"]]
     assert caps == sorted(caps)  # monotonically increasing with VRAM
+
+
+def test_build_run_command_remove_floaters_off_adds_no_postprocess():
+    cfg = {"env_python": "py", "gw_repo": "gw"}
+    on = gw.build_run_command(cfg, "DS", "OUT", "fast", "16")
+    assert "--no_postprocess" not in on          # default: removal ON, nothing added
+    off = gw.build_run_command(cfg, "DS", "OUT", "fast", "16", remove_floaters=False)
+    assert "--no_postprocess" in off
+
+
+def test_build_run_command_no_postprocess_not_duplicated():
+    cfg = {"env_python": "py", "gw_repo": "gw"}
+    cmd = gw.build_run_command(cfg, "DS", "OUT", "fast", "16",
+                               remove_floaters=False, extra=["--no_postprocess"])
+    assert cmd.count("--no_postprocess") == 1
