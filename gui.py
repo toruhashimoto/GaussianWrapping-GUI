@@ -7,6 +7,7 @@ scripts), so the GUI and the CLI cannot diverge.
 """
 import glob
 import os
+import re
 import subprocess
 
 import gradio as gr
@@ -24,8 +25,8 @@ def validate_dataset(path):
     return head + "\n" + "\n".join(msgs)
 
 
-def build_cmd_from_ui(cfg, dataset, output, quality, vram, resolution,
-                      isosurface, extra_args):
+def build_cmd_from_ui(cfg, dataset, output, quality, vram, resolution_preset,
+                      resolution_custom, isosurface, remove_floaters, extra_args):
     """Build the run command from raw UI values.
 
     Gradio delivers None for untouched/cleared fields, so every optional
@@ -34,11 +35,19 @@ def build_cmd_from_ui(cfg, dataset, output, quality, vram, resolution,
     """
     quality_key = (quality or "fast").split()[0]
     extra = extra_args.split() if extra_args and extra_args.strip() else []
+    # Resolution: the preset label carries its own "-r N" ("auto" has none ->
+    # None -> upstream's automatic 1600px cap); a custom -r (>0) overrides it.
+    m = re.search(r"-r\s*(\d+)", resolution_preset or "")
+    preset_r = int(m.group(1)) if m else None
+    effective_r = (int(resolution_custom)
+                   if (resolution_custom and int(resolution_custom) > 0)
+                   else preset_r)
+    remove = True if remove_floaters is None else bool(remove_floaters)
     return gw.build_run_command(
         cfg, dataset, output, quality_key, vram or "16",
-        resolution=resolution or None,
+        resolution=effective_r,
         isosurface=isosurface if (isosurface is not None and isosurface != 0) else None,
-        extra=extra)
+        extra=extra, remove_floaters=remove)
 
 
 def _stage_of(line, current):
@@ -51,7 +60,8 @@ def _stage_of(line, current):
     return current
 
 
-def run_pipeline(dataset, output, quality, vram, resolution, isosurface, extra_args):
+def run_pipeline(dataset, output, quality, vram, resolution_preset,
+                 resolution_custom, isosurface, remove_floaters, extra_args):
     log_lines, stage, meshes, img1, img2 = [], "準備中 / preparing", "", None, None
 
     def state(extra_line=None):
@@ -80,7 +90,8 @@ def run_pipeline(dataset, output, quality, vram, resolution, isosurface, extra_a
         return
 
     cmd = build_cmd_from_ui(cfg, dataset, output, quality, vram,
-                            resolution, isosurface, extra_args)
+                            resolution_preset, resolution_custom, isosurface,
+                            remove_floaters, extra_args)
     yield state("[INFO] " + subprocess.list2cmdline(cmd))
 
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -160,8 +171,19 @@ with gr.Blocks(title="GaussianWrapping GUI") as demo:
                     label="品質プリセット / quality preset")
                 vram = gr.Radio(["8", "12", "16", "24", "48", "96"], value="16",
                                 label="GPU VRAM (GB) - ガウシアン数上限を自動設定")
+                remove_floaters = gr.Checkbox(
+                    value=True,
+                    label="背景/浮遊片を除去（最大の連結成分のみ残す。切断された片のみ対象）"
+                          " / Remove background & floaters (keep largest connected part)")
+                resolution_preset = gr.Radio(
+                    ["自動 (既定) / auto", "フル解像度 / full (-r 1)",
+                     "1/2 (-r 2)", "1/4 (-r 4)"],
+                    value="自動 (既定) / auto",
+                    label="入力解像度 / input resolution")
                 with gr.Accordion("詳細設定 / advanced", open=False):
-                    resolution = gr.Number(value=0, label="-r 解像度縮小 (0 = 自動)")
+                    resolution_custom = gr.Number(
+                        value=0, label="カスタム -r（0 = 上のプリセットに従う。"
+                                       "target幅や -r 8 用）/ custom -r (0 = follow preset)")
                     isosurface = gr.Number(value=0, label="--isosurface_value "
                                            "(0 = 既定。細部が欠けるとき 0.2)")
                     extra_args = gr.Textbox(label="追加引数 (上級者向け、そのまま渡されます) / "
@@ -176,8 +198,9 @@ with gr.Blocks(title="GaussianWrapping GUI") as demo:
             img1 = gr.Image(label="プレビュー 1 / preview 1", type="filepath")
             img2 = gr.Image(label="プレビュー 2 / preview 2", type="filepath")
         run_btn.click(run_pipeline,
-                      inputs=[dataset, output, quality, vram, resolution,
-                              isosurface, extra_args],
+                      inputs=[dataset, output, quality, vram, resolution_preset,
+                              resolution_custom, isosurface, remove_floaters,
+                              extra_args],
                       outputs=[log_box, stage_box, mesh_box, img1, img2])
     with gr.Tab("環境診断 / Diagnostics"):
         gr.Markdown("インストール済み環境のスモークテストを実行します（1分弱）。 / "
